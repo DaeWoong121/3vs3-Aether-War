@@ -1,0 +1,13 @@
+name: AetherWar
+version: ${version}
+main: dev.aetherwar.AetherWar
+api-version: '1.21.4'
+description: 3vs3 Aether War - 에테르 결정 경쟁 미니게임
+commands:
+  aw:
+    description: Aether War 명령어
+    usage: /aw <team|status|start|stop|skip|time|buildmap|testmap|tp|setup|reload>
+    aliases: [aether, rift]
+permissions:
+  aetherwar.admin:
+    default: op
