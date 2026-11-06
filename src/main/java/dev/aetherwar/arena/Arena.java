@@ -26,6 +26,8 @@ public class Arena {
     public final List<NodeDef> nodes = new ArrayList<>();
     /** Radius around each team spawn that counts as that team's base. */
     public double baseRadius = 14;
+    /** Center of the floating lobby island (floor level), or null when it was not built yet. */
+    public Location lobby;
 
     public World world() {
         return Bukkit.getWorld(worldName);
@@ -59,6 +61,7 @@ public class Arena {
         spawns.clear();
         cores.clear();
         nodes.clear();
+        lobby = null;
         ConfigurationSection a = cfg.getConfigurationSection("arena");
         if (a == null) return;
         worldName = a.getString("world", worldName);
@@ -72,6 +75,7 @@ public class Arena {
             Location c = readLoc(w, a.getString("core." + key));
             if (c != null) cores.put(t, c);
         }
+        lobby = readLoc(w, a.getString("lobby"));
         for (String line : a.getStringList("nodes")) {
             String[] parts = line.split(" ", 2);
             NodeType type = NodeType.parse(parts[0]);
@@ -88,6 +92,7 @@ public class Arena {
             cfg.set("arena.spawn." + key, writeLoc(spawns.get(t)));
             cfg.set("arena.core." + key, writeLoc(cores.get(t)));
         }
+        cfg.set("arena.lobby", writeLoc(lobby));
         List<String> list = new ArrayList<>();
         for (NodeDef n : nodes) list.add(n.type().name().toLowerCase().replace('_', '-') + " " + writeLoc(n.location()));
         cfg.set("arena.nodes", list);

@@ -3,6 +3,7 @@ game:
   phase-minutes: 30          # 페이즈 하나의 길이 (3페이즈 = 90분)
   target-ether: 1000         # 코어 목표치
   ether-per-crystal: 5       # 결정 1개 납품 가치
+  ether-per-refined: 15
   hits-per-harvest: 3        # 노드를 몇 번 쳐야 결정이 나오는지
   node-respawn-seconds: 20   # 캔 노드가 다시 생기는 시간
   capture-seconds: 8         # 점령 노드 점령에 필요한 시간
@@ -27,3 +28,20 @@ resource-pack:
   url: https://raw.githubusercontent.com/DaeWoong121/3vs3-Aether-War/main/resourcepack/AetherWar-pack.zip
   sha1: ""          # 비워두면 서버 시작 때 자동으로 계산
   required: true    # 거절하면 접속 불가
+
+skills:
+  starting-points: 1
+  respec-crystals: 10
+
+boss:
+  enabled: true
+  health: 500
+  reward-ether: 120
+  reward-crystals: 8
+  buff-seconds: 180
+
+lobby:
+  auto-build: true          # 맵은 있는데 로비가 없으면 서버 켤 때 자동으로 짓기
+  height: 140               # 맵 가운데 위 로비 섬 높이
+  countdown-seconds: 10     # 모두 준비하면 시작까지
+  return-seconds: 20        # 경기 끝나고 로비로 돌아가기까지

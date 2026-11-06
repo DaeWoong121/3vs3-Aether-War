@@ -46,11 +46,43 @@ public class RiftCommand implements CommandExecutor, TabCompleter {
             TeamColor t = args.length > 1 ? TeamColor.parse(args[1]) : null;
             if (t == null) { msg(sender, "/aw team <red|blue>", NamedTextColor.RED); return true; }
             if (!game.joinTeam(p, t)) msg(sender, "경기 중에는 팀을 바꿀 수 없어요.", NamedTextColor.RED);
-            else msg(sender, t.displayName + "에 들어갔어요.", t.textColor);
+            else {
+                msg(sender, t.displayName + "에 들어갔어요.", t.textColor);
+                p.sendMessage(Component.text("[직업 고르기]", NamedTextColor.GOLD).clickEvent(net.kyori.adventure.text.event.ClickEvent.runCommand("/aw class"))
+                        .append(Component.text(" 를 눌러 직업을 정하세요. 안 고르면 자동으로 정해져요.", NamedTextColor.GRAY)));
+            }
+            return true;
+        }
+        if (sub.equals("class")) {
+            if (!(sender instanceof Player p)) return true;
+            if (args.length > 1) {
+                dev.aetherwar.skill.PlayerClass c = null;
+                for (var pc : dev.aetherwar.skill.PlayerClass.values())
+                    if (pc.key().equalsIgnoreCase(args[1]) || pc.displayName.equals(args[1])) c = pc;
+                if (c == null) { msg(sender, "warrior, miner, alchemist, builder 중 하나", NamedTextColor.RED); return true; }
+                String err = game.skills.chooseClass(p, c);
+                msg(sender, err != null ? err : "직업: " + c.displayName, err != null ? NamedTextColor.RED : NamedTextColor.GREEN);
+                return true;
+            }
+            dev.aetherwar.gui.ClassMenu.open(game, p);
+            return true;
+        }
+        if (sub.equals("ready")) {
+            if (sender instanceof Player p && game.lobby != null) game.lobby.toggleReady(p);
+            return true;
+        }
+        if (sub.equals("skills") || sub.equals("tree")) {
+            if (sender instanceof Player p) dev.aetherwar.gui.SkillMenu.open(game, p);
+            return true;
+        }
+        if (sub.equals("augment")) {
+            if (sender instanceof Player p) dev.aetherwar.gui.AugmentMenu.open(game, p);
             return true;
         }
         if (sub.equals("status")) {
             msg(sender, "상태: " + game.state() + " / 페이즈: " + game.phase().displayName + " / 경과 " + game.elapsed() / 60 + "분", NamedTextColor.GRAY);
+            if (game.isRunning()) msg(sender, "에테르 홍 " + game.ether(TeamColor.RED) + " / 청 " + game.ether(TeamColor.BLUE)
+                    + " · 대균열 " + (game.greatRiftOpen() ? "열림" : "닫힘") + " · 보스 " + (game.boss == null ? "-" : game.boss.defeated() ? "처치됨" : game.boss.alive() ? "살아있음" : "대기"), NamedTextColor.GRAY);
             msg(sender, "맵: " + (arena.isReady() ? "준비됨 (노드 " + arena.nodes.size() + "개)" : "미완성 - " + arena.missing()), NamedTextColor.GRAY);
             return true;
         }
@@ -64,6 +96,38 @@ public class RiftCommand implements CommandExecutor, TabCompleter {
                 if (err != null) msg(sender, err, NamedTextColor.RED);
             }
             case "stop" -> game.abort();
+            case "points" -> {
+                // /aw points <player> <contribution>  (testing)
+                if (args.length < 3) { msg(sender, "/aw points <플레이어> <기여도>", NamedTextColor.RED); return true; }
+                Player t = plugin.getServer().getPlayer(args[1]);
+                if (t == null) { msg(sender, "플레이어가 없어요.", NamedTextColor.RED); return true; }
+                game.addContribution(t, Integer.parseInt(args[2]));
+            }
+            case "learn" -> {
+                // /aw learn <player> <skill id>  (testing)
+                if (args.length < 3) { msg(sender, "/aw learn <플레이어> <스킬 id>", NamedTextColor.RED); return true; }
+                Player t = plugin.getServer().getPlayer(args[1]);
+                var sk = dev.aetherwar.skill.SkillRegistry.get(args[2]);
+                if (t == null || sk == null) { msg(sender, "플레이어나 스킬이 없어요.", NamedTextColor.RED); return true; }
+                String err = sk.cls == null ? null : game.skills.learn(t, sk);
+                if (sk.cls == null) game.skills.addAugment(t, sk);
+                msg(sender, err == null ? "배움: " + sk.name : err, err == null ? NamedTextColor.GREEN : NamedTextColor.RED);
+            }
+            case "cast" -> {
+                if (args.length < 3) { msg(sender, "/aw cast <플레이어> <0|1>", NamedTextColor.RED); return true; }
+                Player t = plugin.getServer().getPlayer(args[1]);
+                if (t != null) game.skills.actives.cast(t, Integer.parseInt(args[2]));
+            }
+            case "buildlobby" -> {
+                if (game.isRunning()) { msg(sender, "경기 중에는 안 돼요.", NamedTextColor.RED); return true; }
+                if (!arena.isReady()) { msg(sender, "먼저 맵이 있어야 해요 (/aw buildmap).", NamedTextColor.RED); return true; }
+                game.lobby.build();
+                game.lobby.sendAll();
+                msg(sender, "로비 섬을 지었어요.", NamedTextColor.GREEN);
+            }
+            case "lobby" -> { if (!game.isRunning()) game.lobby.sendAll(); else msg(sender, "경기 중이에요. /aw stop 먼저.", NamedTextColor.RED); }
+            case "boss" -> { if (game.boss != null) game.boss.spawn(); }
+            case "augments" -> game.offerAugments();
             case "skip" -> game.skipPhase();
             case "time" -> {
                 if (args.length < 2) { msg(sender, "/aw time <경과 분>", NamedTextColor.RED); return true; }
@@ -163,8 +227,9 @@ public class RiftCommand implements CommandExecutor, TabCompleter {
 
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
-        if (args.length == 1) return filter(List.of("team", "status", "start", "stop", "skip", "time", "buildmap", "testmap", "tp", "setup", "reload", "render"), args[0]);
+        if (args.length == 1) return filter(List.of("team", "class", "skills", "augment", "ready", "status", "lobby", "buildlobby", "start", "stop", "skip", "time", "buildmap", "testmap", "tp", "setup", "reload", "render", "boss", "augments", "points", "learn", "cast"), args[0]);
         if (args.length == 2 && (args[0].equalsIgnoreCase("team") || args[0].equalsIgnoreCase("tp"))) return filter(List.of("red", "blue"), args[1]);
+        if (args.length == 2 && args[0].equalsIgnoreCase("class")) return filter(List.of("warrior", "miner", "alchemist", "builder"), args[1]);
         if (args.length == 2 && args[0].equalsIgnoreCase("setup")) return filter(List.of("spawn", "core", "node", "clearnodes", "save"), args[1]);
         if (args.length == 3 && args[1].equalsIgnoreCase("node")) return filter(List.of("safe-red", "safe-blue", "contested", "great"), args[2]);
         if (args.length == 3 && (args[1].equalsIgnoreCase("spawn") || args[1].equalsIgnoreCase("core"))) return filter(List.of("red", "blue"), args[2]);

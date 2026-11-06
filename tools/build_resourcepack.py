@@ -12,6 +12,9 @@ import json, math, os, shutil, subprocess, sys, zipfile, hashlib, wave
 import numpy as np
 from PIL import Image, ImageDraw, ImageFilter
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import skill_assets
+
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, "build", "resourcepack")
 ZIP = os.path.join(ROOT, "resourcepack", "AetherWar-pack.zip")
@@ -216,9 +219,59 @@ def build_item_models():
                 {"when": "ether_crystal", "model": {"type": "minecraft:model", "model": f"{NS}:item/ether_crystal"}},
                 {"when": "refined_crystal", "model": {"type": "minecraft:model", "model": f"{NS}:item/refined_crystal"}},
             ],
-            "fallback": {"type": "minecraft:model", "model": "minecraft:item/amethyst_shard"},
+            "fallback": VANILLA["amethyst_shard"],
         }
     }, "assets", "minecraft", "items", "amethyst_shard.json")
+
+
+def item_select(fallback, names):
+    return {
+        "model": {
+            "type": "minecraft:select",
+            "property": "minecraft:custom_model_data",
+            "index": 0,
+            "cases": [{"when": n, "model": {"type": "minecraft:model", "model": f"{NS}:item/{n}"}} for n in names],
+            "fallback": VANILLA[fallback],
+        }
+    }
+
+
+def build_skill_assets():
+    icons = skill_assets.all_icons()
+    for name, img in icons.items():
+        img.save(path("assets", NS, "textures", "item", name + ".png"))
+        write_json({"parent": "minecraft:item/generated", "textures": {"layer0": f"{NS}:item/{name}"}},
+                   "assets", NS, "models", "item", name + ".json")
+    skill_names = [n for n in icons if not n.startswith("class_")]
+    # skill tree GUI icons are paper; equipped actives are nether star / heart of the sea; menu is the recovery compass
+    write_json(item_select("paper", list(icons)), "assets", "minecraft", "items", "paper.json")
+    write_json(item_select("nether_star", skill_names), "assets", "minecraft", "items", "nether_star.json")
+    write_json(item_select("heart_of_the_sea", skill_names), "assets", "minecraft", "items", "heart_of_the_sea.json")
+    # class icons on their own materials (keep vanilla look otherwise)
+    for cls, mat in (("warrior", "iron_sword"), ("miner", "iron_pickaxe"), ("alchemist", "brewing_stand"), ("builder", "bricks")):
+        write_json(item_select(mat, [f"class_{cls}"]), "assets", "minecraft", "items", mat + ".json")
+    # recovery compass keeps its animated vanilla item definition unless it is the skill book
+    write_json({
+        "model": {
+            "type": "minecraft:select",
+            "property": "minecraft:custom_model_data",
+            "index": 0,
+            "cases": [{"when": "skill_book", "model": {"type": "minecraft:model", "model": f"{NS}:item/skill_book"}}],
+            "fallback": VANILLA["recovery_compass"],
+        }
+    }, "assets", "minecraft", "items", "recovery_compass.json")
+
+    # chest GUI backgrounds via the title font
+    providers = [{"type": "space", "advances": {"\uf808": -8, "\uf809": -169}}]
+    for ch, img in skill_assets.gui_backgrounds():
+        name = "gui_%04x" % ord(ch)
+        img.save(path("assets", NS, "textures", "font", name + ".png"))
+        providers.append({"type": "bitmap", "file": f"{NS}:font/{name}.png", "height": img.height, "ascent": 13, "chars": [ch]})
+    write_json({"providers": providers}, "assets", NS, "font", "gui.json")
+
+
+# vanilla 1.21.4 item definitions (copied from the client jar), used as fallbacks
+VANILLA = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "vanilla_items.json"), encoding="utf-8"))
 
 
 # ------------------------------------------------------------------ sound synthesis
@@ -317,6 +370,7 @@ def main():
     write_json({"pack": {"pack_format": 46, "description": "§d§lAether War §r§7- 에테르 결정 쟁탈전"}}, "pack.mcmeta")
     build_textures()
     build_item_models()
+    build_skill_assets()
     build_sounds()
     build_lang()
     os.makedirs(os.path.dirname(ZIP), exist_ok=True)
