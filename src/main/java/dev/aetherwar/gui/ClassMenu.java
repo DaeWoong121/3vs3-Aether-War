@@ -71,6 +71,12 @@ public class ClassMenu extends Menu {
         for (int i = 0; i < SLOTS.length; i++) {
             if (SLOTS[i] != slot) continue;
             PlayerClass c = PlayerClass.values()[i];
+            if (game.lobby != null && !game.isRunning()) {
+                game.lobby.chooseClass(viewer, c);
+                for (Player m : viewer.getServer().getOnlinePlayers())
+                    if (m.getOpenInventory().getTopInventory().getHolder() instanceof ClassMenu cm) cm.build();
+                return;
+            }
             String err = game.skills.chooseClass(viewer, c);
             if (err != null) {
                 viewer.sendMessage(Component.text(err, NamedTextColor.RED));

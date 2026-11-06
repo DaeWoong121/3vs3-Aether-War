@@ -24,7 +24,7 @@ public class AugmentMenu extends Menu {
     public AugmentMenu(GameManager game, Player viewer) {
         super(viewer);
         this.game = game;
-        create(27, title(BG_SMALL, "균열 각인 · 하나를 고르세요", TextColor.color(0x3A2A55)));
+        create(27, title(BG_AUGMENT, "균열 각인 · 하나를 고르세요", TextColor.color(0x3A2A55)));
     }
 
     public static void open(GameManager game, Player p) {

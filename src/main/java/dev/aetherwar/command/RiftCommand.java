@@ -67,6 +67,10 @@ public class RiftCommand implements CommandExecutor, TabCompleter {
             dev.aetherwar.gui.ClassMenu.open(game, p);
             return true;
         }
+        if (sub.equals("ready")) {
+            if (sender instanceof Player p && game.lobby != null) game.lobby.toggleReady(p);
+            return true;
+        }
         if (sub.equals("skills") || sub.equals("tree")) {
             if (sender instanceof Player p) dev.aetherwar.gui.SkillMenu.open(game, p);
             return true;
@@ -114,6 +118,14 @@ public class RiftCommand implements CommandExecutor, TabCompleter {
                 Player t = plugin.getServer().getPlayer(args[1]);
                 if (t != null) game.skills.actives.cast(t, Integer.parseInt(args[2]));
             }
+            case "buildlobby" -> {
+                if (game.isRunning()) { msg(sender, "경기 중에는 안 돼요.", NamedTextColor.RED); return true; }
+                if (!arena.isReady()) { msg(sender, "먼저 맵이 있어야 해요 (/aw buildmap).", NamedTextColor.RED); return true; }
+                game.lobby.build();
+                game.lobby.sendAll();
+                msg(sender, "로비 섬을 지었어요.", NamedTextColor.GREEN);
+            }
+            case "lobby" -> { if (!game.isRunning()) game.lobby.sendAll(); else msg(sender, "경기 중이에요. /aw stop 먼저.", NamedTextColor.RED); }
             case "boss" -> { if (game.boss != null) game.boss.spawn(); }
             case "augments" -> game.offerAugments();
             case "skip" -> game.skipPhase();
@@ -215,7 +227,7 @@ public class RiftCommand implements CommandExecutor, TabCompleter {
 
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
-        if (args.length == 1) return filter(List.of("team", "class", "skills", "augment", "status", "start", "stop", "skip", "time", "buildmap", "testmap", "tp", "setup", "reload", "render", "boss", "augments", "points", "learn", "cast"), args[0]);
+        if (args.length == 1) return filter(List.of("team", "class", "skills", "augment", "ready", "status", "lobby", "buildlobby", "start", "stop", "skip", "time", "buildmap", "testmap", "tp", "setup", "reload", "render", "boss", "augments", "points", "learn", "cast"), args[0]);
         if (args.length == 2 && (args[0].equalsIgnoreCase("team") || args[0].equalsIgnoreCase("tp"))) return filter(List.of("red", "blue"), args[1]);
         if (args.length == 2 && args[0].equalsIgnoreCase("class")) return filter(List.of("warrior", "miner", "alchemist", "builder"), args[1]);
         if (args.length == 2 && args[0].equalsIgnoreCase("setup")) return filter(List.of("spawn", "core", "node", "clearnodes", "save"), args[1]);

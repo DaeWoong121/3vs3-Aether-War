@@ -187,7 +187,10 @@ public class GameListener implements Listener {
 
     @EventHandler(ignoreCancelled = true)
     public void onMove(PlayerMoveEvent e) {
-        if (!game.isRunning()) return;
+        if (!game.isRunning()) {
+            if (game.lobby != null && e.hasChangedBlock()) game.lobby.stepped(e.getPlayer(), e.getTo());
+            return;
+        }
         Location to = e.getTo(), from = e.getFrom();
         Player p = e.getPlayer();
         if (to.getBlockX() != from.getBlockX() || to.getBlockY() != from.getBlockY() || to.getBlockZ() != from.getBlockZ())
@@ -223,9 +226,27 @@ public class GameListener implements Listener {
         if (e.getHand() != EquipmentSlot.HAND) return;
         if (e.getAction() != Action.RIGHT_CLICK_AIR && e.getAction() != Action.RIGHT_CLICK_BLOCK) return;
         String tag = SkillItems.tag(e.getItem());
-        if (tag == null) return;
+        if (tag == null || tag.equals("lobby:book")) return;
         e.setCancelled(true);
         Player p = e.getPlayer();
+        if (tag.startsWith("lobby:") && game.lobby != null && !game.isRunning()) {
+            switch (tag) {
+                case "lobby:team" -> dev.aetherwar.gui.TeamMenu.open(game, p);
+                case "lobby:class" -> dev.aetherwar.gui.ClassMenu.open(game, p);
+                case "lobby:tree" -> {
+                    if (game.skills.classOf(p) == null) p.sendActionBar(Component.text("직업을 먼저 골라요", NamedTextColor.YELLOW));
+                    else dev.aetherwar.gui.SkillMenu.open(game, p);
+                }
+                case "lobby:ready" -> game.lobby.toggleReady(p);
+                case "lobby:start" -> {
+                    if (!p.hasPermission("aetherwar.admin")) return;
+                    if (p.isSneaking()) game.lobby.forceStart(p);
+                    else p.sendActionBar(Component.text("쉬프트를 누른 채로 우클릭하면 바로 시작해요", NamedTextColor.GRAY));
+                }
+                default -> { }
+            }
+            return;
+        }
         if (tag.equals("menu")) dev.aetherwar.gui.SkillMenu.open(game, p);
         else if (tag.startsWith("active:")) game.skills.actives.cast(p, Integer.parseInt(tag.substring(7)));
     }
@@ -307,7 +328,10 @@ public class GameListener implements Listener {
     public void onJoin(PlayerJoinEvent e) {
         game.hud().show(e.getPlayer());
         if (game.boss != null) game.boss.showTo(e.getPlayer());
-        if (!game.isRunning()) return;
+        if (!game.isRunning()) {
+            if (game.lobby != null) game.lobby.send(e.getPlayer());
+            return;
+        }
         TeamColor t = game.teamOf(e.getPlayer());
         if (t == null) {
             e.getPlayer().setGameMode(GameMode.SPECTATOR);

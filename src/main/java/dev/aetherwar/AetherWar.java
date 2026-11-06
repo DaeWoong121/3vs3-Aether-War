@@ -14,6 +14,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 public final class AetherWar extends JavaPlugin {
     private GameManager game;
     private ResourcePackManager packs;
+    private dev.aetherwar.lobby.Lobby lobby;
 
     public ResourcePackManager packs() { return packs; }
 
@@ -44,6 +45,16 @@ public final class AetherWar extends JavaPlugin {
         game = new GameManager(this, arena);
         getServer().getPluginManager().registerEvents(new GameListener(game), this);
         getServer().getPluginManager().registerEvents(new dev.aetherwar.gui.GuiListener(), this);
+        lobby = new dev.aetherwar.lobby.Lobby(this, game, arena);
+        game.lobby = lobby;
+        getServer().getPluginManager().registerEvents(new dev.aetherwar.lobby.LobbyListener(game, lobby), this);
+        if (arena.isReady() && !lobby.exists() && getConfig().getBoolean("lobby.auto-build", true)) {
+            getLogger().info("로비 섬을 짓는 중...");
+            lobby.build();
+        }
+        lobby.start();
+        // players already online after a reload
+        getServer().getScheduler().runTask(this, () -> { if (lobby.exists()) lobby.sendAll(); });
         RiftCommand cmd = new RiftCommand(this, game, arena);
         getCommand("aw").setExecutor(cmd);
         getCommand("aw").setTabCompleter(cmd);
@@ -53,5 +64,6 @@ public final class AetherWar extends JavaPlugin {
     @Override
     public void onDisable() {
         if (game != null) game.abort();
+        if (lobby != null) lobby.shutdown();
     }
 }

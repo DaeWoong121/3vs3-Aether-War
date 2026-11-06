@@ -69,6 +69,7 @@ public class GameManager {
     private final Map<UUID, Long> coreHitCooldown = new HashMap<>();
 
     public SkillManager skills;
+    public dev.aetherwar.lobby.Lobby lobby;
     public Boss boss;
     public final Map<UUID, TeamColor> golemTeam = new HashMap<>();
     public final Map<UUID, Long> stealthUntil = new HashMap<>();
@@ -247,6 +248,7 @@ public class GameManager {
         for (Player p : Bukkit.getOnlinePlayers()) Sfx.play(p, "victory", 1f, 1f);
         cleanupWorld();
         hud.stop();
+        if (lobby != null) lobby.returnAfter(plugin.getConfig().getInt("lobby.return-seconds", 20));
     }
 
     /** Ends the match without a result (admin stop). */
@@ -257,6 +259,7 @@ public class GameManager {
         broadcast(Component.text("경기가 중단됐어요.", NamedTextColor.RED));
         cleanupWorld();
         hud.stop();
+        if (lobby != null && plugin.isEnabled()) lobby.sendAll();
     }
 
     private void cleanupWorld() {
@@ -868,7 +871,8 @@ public class GameManager {
         contribution.merge(p.getUniqueId(), amount, Integer::sum);
         int after = skillPoints(p);
         if (after > before) {
-            p.sendMessage(Component.text("스킬 포인트 +" + (after - before) + " (보유 " + after + ")", NamedTextColor.GREEN));
+            p.sendMessage(Component.text("✦ 스킬 포인트 +" + (after - before) + " (남은 포인트 " + skills.freePoints(p) + ") ", NamedTextColor.GREEN)
+                    .append(Component.text("[스킬트리 열기]", NamedTextColor.LIGHT_PURPLE).clickEvent(net.kyori.adventure.text.event.ClickEvent.runCommand("/aw skills"))));
             p.playSound(p.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 0.7f, 1.2f);
         }
     }

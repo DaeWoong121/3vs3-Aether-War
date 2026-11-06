@@ -39,3 +39,9 @@ boss:
   reward-ether: 120
   reward-crystals: 8
   buff-seconds: 180
+
+lobby:
+  auto-build: true          # 맵은 있는데 로비가 없으면 서버 켤 때 자동으로 짓기
+  height: 140               # 맵 가운데 위 로비 섬 높이
+  countdown-seconds: 10     # 모두 준비하면 시작까지
+  return-seconds: 20        # 경기 끝나고 로비로 돌아가기까지

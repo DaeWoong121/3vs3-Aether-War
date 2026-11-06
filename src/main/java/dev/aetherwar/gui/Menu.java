@@ -14,7 +14,7 @@ import org.bukkit.inventory.InventoryHolder;
 public abstract class Menu implements InventoryHolder {
     public static final Key GUI_FONT = Key.key("aetherwar", "gui");
     /** Glyphs in the aetherwar:gui font. */
-    public static final String BG_TREE = "", BG_SMALL = "";
+    public static final String BG_TREE = "\uE100", BG_SMALL = "\uE101", BG_AUGMENT = "\uE102";
     /** Negative spaces: -8 and -169 / -177 pixels (see build_resourcepack.py). */
     public static final String NEG_8 = "", BACK_FROM_BG = "";
 
