@@ -21,6 +21,7 @@ public final class AetherWar extends JavaPlugin {
     public void onEnable() {
         saveDefaultConfig();
         Items.init(this);
+        dev.aetherwar.skill.SkillItems.init(this);
 
         Arena arena = new Arena();
         String worldName = getConfig().getString("arena.world", "aether_arena");
@@ -42,6 +43,7 @@ public final class AetherWar extends JavaPlugin {
 
         game = new GameManager(this, arena);
         getServer().getPluginManager().registerEvents(new GameListener(game), this);
+        getServer().getPluginManager().registerEvents(new dev.aetherwar.gui.GuiListener(), this);
         RiftCommand cmd = new RiftCommand(this, game, arena);
         getCommand("aw").setExecutor(cmd);
         getCommand("aw").setTabCompleter(cmd);
